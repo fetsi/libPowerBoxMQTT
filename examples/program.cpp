@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
         "netio/PowerBOX-B7/output/3/action" 
     };
     std::string subt("devices/PowerBOX-B7/messages/devicebound/");
-    PowerBox3PX pb("192.168.100.15", 1883, "controller_app", "powerbox-b7", "jaska123", pubt, subt);
+    PowerBox3PX pb("192.168.100.15", 1883, "controller_app", "powerbox-b7", "jaska123", pubt, subt, false);
     int rc;
     rc = pb.connect();
     if(rc == 0) {

@@ -26,6 +26,7 @@ private:
     const string pwd;
     const topics pubTopics;
     const string subTopic;
+    bool verbose;
     MQTTClient client;
     int sock1_st;
     int sock2_st;
@@ -63,15 +64,15 @@ private:
 
         /*Invoke events if socket states have changed*/
         if(sock1_st != sock1_prev_st) {
-            cout << "Socket 1 changed state from " << sock1_prev_st << " to " << sock1_st << endl;
+            if(verbose) cout << "Socket 1 changed state from " << sock1_prev_st << " to " << sock1_st << endl;
             notifiable->receiveSocketEvent(1, sock1_st);
         }
         if(sock2_st != sock2_prev_st) {
-            cout << "Socket 2 changed state from " << sock2_prev_st << " to " << sock2_st << endl;
+            if(verbose) cout << "Socket 2 changed state from " << sock2_prev_st << " to " << sock2_st << endl;
             notifiable->receiveSocketEvent(2, sock2_st);
         }
         if(sock3_st != sock3_prev_st) {
-            cout << "Socket 3 changed state from " << sock3_prev_st << " to " << sock3_st << endl;
+            if(verbose) cout << "Socket 3 changed state from " << sock3_prev_st << " to " << sock3_st << endl;
             notifiable->receiveSocketEvent(3, sock3_st);
         }
     }
@@ -145,7 +146,6 @@ private:
                 continue;
             }
         }
-        //cout << "Socket1: " << sock1_st << " Socket2: " << sock2_st << " Sock3: " << sock3_st << endl;
         if(!gotSock1 || !gotSock2 || !gotSock3) {
             return 4;
         }
@@ -160,9 +160,9 @@ public:
     /*Public functions that are part of the PowerBox3PX public interface*/
 
     impl(string _host, uint16_t _port, string _clientId, string _user, string _pwd,
-        topics _pubTopics, std::string _subTopic) : 
+        topics _pubTopics, std::string _subTopic, bool _verbose) : 
         host(_host), port(_port), clientId(_clientId), user(_user), pwd(_pwd), 
-        pubTopics(_pubTopics), subTopic(_subTopic), 
+        pubTopics(_pubTopics), subTopic(_subTopic), verbose(_verbose),
         sock1_st(SOCKET_UNINITIALIZED), sock2_st(SOCKET_UNINITIALIZED), 
         sock3_st(SOCKET_UNINITIALIZED), deliveredtoken(0)
         {
@@ -178,7 +178,6 @@ public:
         }
 
     ~impl() { 
-        cout << "Executing impl class destructor and freeing allocated memory" << endl;
         MQTTClient_destroy(&client);
     }
 
@@ -207,7 +206,7 @@ public:
             return -1;
         }
         notifiable = _notifiable;
-        cout << "Subscribing to topic " << endl << subTopic << endl;
+        if(verbose) cout << "Subscribing to topic " << endl << subTopic << endl;
         return MQTTClient_subscribe(client, subTopic.c_str(), 1);
     }
 
@@ -254,9 +253,10 @@ public:
         msg.retained = 0;
         deliveredtoken = 0;
         MQTTClient_publishMessage(client, topic.c_str(), &msg, &token);
-        cout << "Waiting for publication of " << "\"" << (const char*)msgdata << "\"" <<
-        " on topic " << topic << " for client " << clientId << " with token " << token << endl;
-
+        if(verbose) {
+            cout << "Waiting for publication of " << "\"" << (const char*)msgdata << "\"" <<
+            " on topic " << topic << " for client " << clientId << " with token " << token << endl;
+        }
         while(deliveredtoken != token);
         free(msgdata);
         return 0;
@@ -269,15 +269,18 @@ public:
     /*Static callback methods for libPaho async events*/
     
     static void connectionLost(void *context, char *cause) {
-        cout << "Connection to MQTT broker lost: " << cause << endl;
+        PowerBox3PX::impl *instance = (PowerBox3PX::impl*) context;
+        if(instance->verbose) cout << "Connection to MQTT broker lost: " << cause << endl;
     }
 
     static int messageArrived(void *context, char *topic, int topicLen, MQTTClient_message *msg) {
         PowerBox3PX::impl *instance = (PowerBox3PX::impl*) context;
         string payload_str((const char*) msg->payload, msg->payloadlen);
 
-        //cout << "Received a message on topic " << "\"" << topic << "\"" << ":" 
-        //<< "\"" << payload_str << "\"" << endl;
+        if(instance->verbose) {
+            cout << "Received a message on topic " << "\"" << topic << "\"" << ":" 
+            << "\"" << payload_str << "\"" << endl;
+        }
 
         instance->handleMessage(payload_str);        
         MQTTClient_freeMessage(&msg);
@@ -291,7 +294,7 @@ public:
             cerr << "Context is of invalid type!" << endl;
             return;
         }
-        cout << "Message with token " << dt << " delivered successfully" << endl;
+        if(instance->verbose) cout << "Message with token " << dt << " delivered successfully" << endl;
         instance->setDeliveredToken(dt);
     }
 };
@@ -307,8 +310,8 @@ public:
 *the impl object*/
 
 PowerBox3PX::PowerBox3PX(string brokerIP, uint16_t brokerPort, string clientId, string username, string password, 
-    topics publishTopics, string subscribeTopic) : 
-    pImpl(std::make_unique<impl>(brokerIP, brokerPort, clientId, username, password, publishTopics, subscribeTopic)) {}
+    topics publishTopics, string subscribeTopic, bool verbose) : 
+    pImpl(std::make_unique<impl>(brokerIP, brokerPort, clientId, username, password, publishTopics, subscribeTopic, verbose)) {}
 
 PowerBox3PX:: ~PowerBox3PX() = default;
 

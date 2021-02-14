@@ -1,5 +1,5 @@
 libname = libPowerBoxMQTT
-apiversion = 1
+apiversion = 2
 minorversion = 0
 filename = $(libname).so.$(apiversion).$(minorversion)
 soname = $(libname).so.$(apiversion)
@@ -12,6 +12,7 @@ libinstallpath = /usr/local/lib
 headerinstallpath = /usr/local/include
 
 
+
 pbox : PowerBox3PX.o
 	g++ -shared -o $(buildpath)/$(filename) -fPIC -Wl,-soname,$(soname) -Wl,--whole-archive $(deplibpath)/libpaho-mqtt3c.a -Wl,--no-whole-archive $(buildpath)/PowerBox3PX.o -lc
 
@@ -20,7 +21,7 @@ PowerBox3PX.o : $(srcpath)/PowerBox3PX.cpp
 
 
 install:
-	cp $(buildpath)/$(filename) $(libinstallpath) && cd $(libinstallpath) && ln -s $(filename) $(soname) && ln -s $(soname) $(linkname)
+	cp $(buildpath)/$(filename) $(libinstallpath) && cd $(libinstallpath) && ln -s $(filename) $(soname) && ln -s $(soname) $(linkname) && ldconfig
 	cp $(srcpath)/PowerBox3PX.hpp $(headerinstallpath)
 
 

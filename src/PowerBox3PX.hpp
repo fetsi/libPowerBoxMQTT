@@ -42,7 +42,7 @@ std::experimental::propagate_const<std::unique_ptr<impl>> pImpl; /*Const-propaga
 
 public:
     PowerBox3PX(std::string brokerIP, uint16_t brokerPort, std::string clientId, std::string username, std::string password,
-        topics publishTopics, std::string subscribeTopic);
+        topics publishTopics, std::string subscribeTopic, bool verbose);
     ~PowerBox3PX();
 
     /**
